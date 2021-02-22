@@ -189,12 +189,22 @@ def adia_dev(I, z, detuning, start, end):
 
 # calculated deviation from adiabaticity along slower, to be plotted to show
 # how robust the slowing ought to be
-def adia_dev_fix(I, z, detuning, start, end):
+# with an increased I parameter
+def adia_dev_fix1(I, z, detuning, start, end):
     #unpack I
     I = I.tolist()
     coilPos = I.pop()
     I = np.asarray(I)
     
+    dev = ADIA_CONST*exp_dBdz_fix(I, z, coilPos)[start:end]
+    #print(dev)
+    dev = dev*(detuning*LAMBDA-ADIA_CONST*ideal_B_field(z,detuning)[start:end])## check this line!
+    return np.abs(dev)
+
+# calculated deviation from adiabaticity along slower, to be plotted to show
+# how robust the slowing ought to be
+# with a normal I but additional parameter at the end
+def adia_dev_fix2(I, z, detuning, start, end, coilPos):
     dev = ADIA_CONST*exp_dBdz_fix(I, z, coilPos)[start:end]
     #print(dev)
     dev = dev*(detuning*LAMBDA-ADIA_CONST*ideal_B_field(z,detuning)[start:end])## check this line!
@@ -235,7 +245,7 @@ def func_to_minimize(I, z, detuning):
     slow_reg_i, slow_reg_f = find_slower_endpoints(I, z, slower_type)
     #print(slow_reg_i)
     #print(slow_reg_f)
-    deviation = adia_dev_fix(I, z, detuning, slow_reg_i, slow_reg_f)
+    deviation = adia_dev_fix2(I, z, detuning, slow_reg_i, slow_reg_f,coilPos)
     #print(deviation)
     max_adia_dev = deviation.max()
     if max_adia_dev > ETA*A_MAX:
@@ -277,7 +287,7 @@ def find_ZS_profiles(I0_list, z, detuning_list):
     print("test1")
     exp_B_list = [exp_B_field_fix(If[:-1],z,If[-1]) for If in If_list]
     print("test2")
-    adia_dev_list = [adia_dev_fix(If_list[i],z,detuning_list[i],ZS_START_IND,ZS_END_IND) for i in ind_list]
+    adia_dev_list = [adia_dev_fix1(If_list[i],z,detuning_list[i],ZS_START_IND,ZS_END_IND) for i in ind_list]
     print("test3")
     zs_profiles["ideal_B_list"] = ideal_B_list
     zs_profiles["If_list"] = If_list
