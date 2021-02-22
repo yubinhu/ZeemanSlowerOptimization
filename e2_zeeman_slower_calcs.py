@@ -189,7 +189,12 @@ def adia_dev(I, z, detuning, start, end):
 
 # calculated deviation from adiabaticity along slower, to be plotted to show
 # how robust the slowing ought to be
-def adia_dev_fix(I, z, detuning, start, end, coilPos):
+def adia_dev_fix(I, z, detuning, start, end):
+    #unpack I
+    I = I.tolist()
+    coilPos = I.pop()
+    I = np.asarray(I)
+    
     dev = ADIA_CONST*exp_dBdz_fix(I, z, coilPos)[start:end]
     #print(dev)
     dev = dev*(detuning*LAMBDA-ADIA_CONST*ideal_B_field(z,detuning)[start:end])## check this line!
@@ -230,7 +235,7 @@ def func_to_minimize(I, z, detuning):
     slow_reg_i, slow_reg_f = find_slower_endpoints(I, z, slower_type)
     #print(slow_reg_i)
     #print(slow_reg_f)
-    deviation = adia_dev(I, z, detuning, slow_reg_i, slow_reg_f)
+    deviation = adia_dev_fix(I, z, detuning, slow_reg_i, slow_reg_f)
     #print(deviation)
     max_adia_dev = deviation.max()
     if max_adia_dev > ETA*A_MAX:
@@ -241,12 +246,19 @@ def func_to_minimize(I, z, detuning):
     act_cap_vel = np.abs(detuning*LAMBDA-ADIA_CONST*act_B[slow_reg_f])
     if act_cap_vel > MOT_CAP_VEL:
         cap_vel_penalty = 1000000
+        
+    #coil position penalty
+    coil_pos_penalty = 0
+    expected_position = 35
+    tolarance = 15
+    if coilPos < expected_position-tolarance or coilPos > expected_position+tolarance:
+        coil_pos_penalty = 1000000
     
     #calc least squares in the ROIs (ignoring the other behavior)
     fit_penalty = np.sum((ideal_B[ZS_START_IND:ZS_END_IND]-act_B[ZS_START_IND:ZS_END_IND])**2)
     fit_penalty += np.sum((ideal_B[MOT_START_IND:]-act_B[MOT_START_IND:])**2)/2
     
-    return fit_penalty + adia_penalty + cap_vel_penalty
+    return fit_penalty + adia_penalty + cap_vel_penalty + coil_pos_penalty
 
 # function to optimize the currents
 def find_opt_currents(I0, z, detuning):
@@ -265,7 +277,7 @@ def find_ZS_profiles(I0_list, z, detuning_list):
     print("test1")
     exp_B_list = [exp_B_field_fix(If[:-1],z,If[-1]) for If in If_list]
     print("test2")
-    adia_dev_list = [adia_dev(If_list[i],z,detuning_list[i],ZS_START_IND,ZS_END_IND) for i in ind_list]
+    adia_dev_list = [adia_dev_fix(If_list[i],z,detuning_list[i],ZS_START_IND,ZS_END_IND) for i in ind_list]
     print("test3")
     zs_profiles["ideal_B_list"] = ideal_B_list
     zs_profiles["If_list"] = If_list
