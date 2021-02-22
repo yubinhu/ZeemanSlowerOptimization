@@ -48,7 +48,7 @@ else:
 DETUNINGS = [0,-200,-400,-600,-800,-1000,-1200,-1400,-1600]
 
 # useful commands to run
-# B_field_dict = find_ZS_profiles([[0,0,0,0] for i in DETUNINGS], Z_AXIS, DETUNINGS)
+# B_field_dict = find_ZS_profiles([[0,0,0,0,0,35] for i in DETUNINGS], Z_AXIS, DETUNINGS)
 # (or) B_field_dict = find_ZS_profiles([[0,0,0,0,0] for i in DETUNINGS], Z_AXIS, DETUNINGS)
 # ZS_plot(Z_AXIS, B_field_dict)
 
@@ -113,11 +113,27 @@ def exp_B_field(I, z):
     if FIXFLAG:
         B += I[4]*blue_B_prof(z)
     return B
+
+def exp_B_field_fix(I, z, coilPos):
+    B = I[0]*red_B_prof(z)+I[1]*yellow_B_prof(z)+I[2]*green_B_prof(z)+I[3]*purple_B_prof(z)
+    if FIXFLAG:
+        B += I[4]*blue_B_prof(z-coilPos)
+    return B
+
+
+
 def exp_dBdz(I, z):
     dBdz = I[0]*red_dBdz(z)+I[1]*yellow_dBdz(z)+I[2]*green_dBdz(z)+I[3]*purple_dBdz(z)
     if FIXFLAG:
         dBdz += I[4]*blue_dBdz(z)
     return dBdz
+
+def exp_dBdz_fix(I, z, coilPos):
+    dBdz = I[0]*red_dBdz(z)+I[1]*yellow_dBdz(z)+I[2]*green_dBdz(z)+I[3]*purple_dBdz(z)
+    if FIXFLAG:
+        dBdz += I[4]*blue_dBdz(z-coilPos)
+    return dBdz
+
 def exp_d2Bdz2(I, z):
     d2Bdz2 = I[0]*red_d2Bdz2(z)+I[1]*yellow_d2Bdz2(z)+I[2]*green_d2Bdz2(z)+I[3]*purple_d2Bdz2(z)
     if FIXFLAG:
@@ -162,11 +178,19 @@ def find_slower_endpoints(I, z, slower_type="inc_field"):
         rv[1] = int(3*list_len/4)+B[int(3*list_len/4):ZS_END_IND].argmin()
     return (rv[0], rv[1])
 
-#QUESTION: what does this mean?
+
 # calculated deviation from adiabaticity along slower, to be plotted to show
 # how robust the slowing ought to be
 def adia_dev(I, z, detuning, start, end):
     dev = ADIA_CONST*exp_dBdz(I, z)[start:end]
+    #print(dev)
+    dev = dev*(detuning*LAMBDA-ADIA_CONST*ideal_B_field(z,detuning)[start:end])## check this line!
+    return np.abs(dev)
+
+# calculated deviation from adiabaticity along slower, to be plotted to show
+# how robust the slowing ought to be
+def adia_dev_fix(I, z, detuning, start, end, coilPos):
+    dev = ADIA_CONST*exp_dBdz_fix(I, z, coilPos)[start:end]
     #print(dev)
     dev = dev*(detuning*LAMBDA-ADIA_CONST*ideal_B_field(z,detuning)[start:end])## check this line!
     return np.abs(dev)
@@ -191,8 +215,14 @@ def det_slower_type(z, detuning):
 
 # penalty function to minimize by least sq method
 def func_to_minimize(I, z, detuning):
+    
+    #unpack I
+    I = I.tolist()
+    coilPos = I.pop()
+    I = np.asarray(I)
+    
     ideal_B = ideal_B_field(z, detuning)
-    act_B = exp_B_field(I, z)
+    act_B = exp_B_field_fix(I, z, coilPos)
     slower_type = det_slower_type(z, detuning)
     
     #calc deviations from adabaticity
@@ -233,7 +263,7 @@ def find_ZS_profiles(I0_list, z, detuning_list):
     ideal_B_list = [ideal_B_field(z, detuning) for detuning in detuning_list]
     If_list = [find_opt_currents(I0_list[i], z, detuning_list[i]) for i in ind_list]
     print("test1")
-    exp_B_list = [exp_B_field(If,z) for If in If_list]
+    exp_B_list = [exp_B_field_fix(If[:-1],z,If[-1]) for If in If_list]
     print("test2")
     adia_dev_list = [adia_dev(If_list[i],z,detuning_list[i],ZS_START_IND,ZS_END_IND) for i in ind_list]
     print("test3")
