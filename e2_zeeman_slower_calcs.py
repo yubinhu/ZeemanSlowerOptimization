@@ -234,6 +234,7 @@ def func_to_minimize(I, z, detuning):
     #unpack I
     I = I.tolist()
     coilPos = I.pop()
+    fix_curr = I[-1]
     I = np.asarray(I)
     
     ideal_B = ideal_B_field(z, detuning)
@@ -261,7 +262,9 @@ def func_to_minimize(I, z, detuning):
     coil_pos_penalty = 0
     expected_position = 35
     tolarance = 15
-    if coilPos < expected_position-tolarance or coilPos > expected_position+tolarance:
+    maxCurrent = 20 #A
+    if ((coilPos < expected_position-tolarance) or (coilPos > expected_position+tolarance) 
+        or (fix_curr > maxCurrent)):
         coil_pos_penalty = 1000000
     
     #calc least squares in the ROIs (ignoring the other behavior)
