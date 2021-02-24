@@ -276,7 +276,7 @@ def vel_prop_plot(vis, v_dict):
         axes.plot(v_dict[v]['z'], v_dict[v]['v'], lw=1)
     return None
 
-B_field_dict = find_ZS_profiles([[0,0,0,0] for i in DETUNINGS], Z_AXIS, DETUNINGS)
+#B_field_dict = find_ZS_profiles([[0,0,0,0] for i in DETUNINGS], Z_AXIS, DETUNINGS)
 
 
 

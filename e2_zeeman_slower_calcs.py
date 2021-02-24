@@ -91,6 +91,7 @@ green_B_prof = UnivariateSpline(green_calib_data[0]/100.0, green_calib_data[1])
 purple_B_prof = UnivariateSpline(purple_calib_data[0]/100.0, purple_calib_data[1])
 if FIXFLAG:
     bluex,bluey = sample()
+    bluex = [x/100 for x in bluex]
     blue_B_prof = UnivariateSpline(bluex, bluey)
 
 red_dBdz = red_B_prof.derivative()
@@ -234,7 +235,6 @@ def func_to_minimize(I, z, detuning):
     #unpack I
     I = I.tolist()
     coilPos = I.pop()
-    fix_curr = I[-1]
     I = np.asarray(I)
     
     ideal_B = ideal_B_field(z, detuning)
@@ -257,25 +257,17 @@ def func_to_minimize(I, z, detuning):
     act_cap_vel = np.abs(detuning*LAMBDA-ADIA_CONST*act_B[slow_reg_f])
     if act_cap_vel > MOT_CAP_VEL:
         cap_vel_penalty = 1000000
-        
-    #coil position penalty
-    coil_pos_penalty = 0
-    expected_position = 35
-    tolarance = 15
-    maxCurrent = 20 #A
-    if ((coilPos < expected_position-tolarance) or (coilPos > expected_position+tolarance) 
-        or (fix_curr > maxCurrent)):
-        coil_pos_penalty = 1000000
     
     #calc least squares in the ROIs (ignoring the other behavior)
     fit_penalty = np.sum((ideal_B[ZS_START_IND:ZS_END_IND]-act_B[ZS_START_IND:ZS_END_IND])**2)
     fit_penalty += np.sum((ideal_B[MOT_START_IND:]-act_B[MOT_START_IND:])**2)/2
     
-    return fit_penalty + adia_penalty + cap_vel_penalty + coil_pos_penalty
+    return fit_penalty + adia_penalty + cap_vel_penalty
 
 # function to optimize the currents
 def find_opt_currents(I0, z, detuning):
-    res = minimize(func_to_minimize, I0, args=(z, detuning))
+    bounds = [(-np.inf,np.inf),(-np.inf,np.inf),(-np.inf,np.inf),(-np.inf,np.inf),(-10,10),(20,60)]
+    res = minimize(func_to_minimize, I0, args=(z, detuning),bounds=bounds)
     print('optimized detuning='+str(detuning)+'MHz, B-field profile')
     return res['x']
 

@@ -14,6 +14,8 @@ import scipy.constants as constant
 import math
 import numpy as np
 
+TESTFLAG = False
+
 
 def loop_B_field(I,R):
     """
@@ -63,6 +65,8 @@ def sample():
         
     #takes in cm, output in gauss
     def B_prof(x):
+        if TESTFLAG:
+            return 0
         x_in_m = x/100
         return 10000*B(x_in_m)
     
