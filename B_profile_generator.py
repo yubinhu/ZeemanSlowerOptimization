@@ -13,6 +13,10 @@ Created on Sun Feb 21 19:11:05 2021
 import scipy.constants as constant
 import math
 import numpy as np
+from matplotlib import pyplot as plt
+from scipy.misc import derivative
+
+# TODO: pack it all into a class
 
 TESTFLAG = False
 
@@ -52,6 +56,28 @@ def layer_B_field(I, R, d, n):
         return result
     return B
 
+def profile_generator():
+    # coil setup
+    d = 1.6277*10**(-3) #awg14
+    R = 2.9*10**(-2) #inner diameter
+    n = 62 #winds
+    B = layer_B_field(1, R, d, n)
+
+    #takes in m, output in gauss
+    def B_prof(x):
+        return 10000*B(x)
+
+    def dBdx(x):
+        return derivative(B_prof,x,0.001,n=1)
+    
+    def d2Bdx2(x):
+        return derivative(B_prof,x,0.001,n=2)
+    
+    return B_prof, dBdx, d2Bdx2
+    
+
+
+
 def sample():
     """
     Return a list of B_prof(x)  in cm and gauss
@@ -74,4 +100,22 @@ def sample():
     y = [B_prof(i) for i in x]
     return x,y
     
-    
+
+def main():
+    # for testing
+    test = 1
+    if test==0:
+        bluex,bluey = sample()
+    if test==1:
+        bluex = np.linspace(-1,1,2000)
+        B_profile, dBdx, d2Bdx2 = profile_generator()
+        bluey = [B_profile(i) for i in bluex]
+        firstDer = [dBdx(i) for i in bluex]
+        secondDer = [d2Bdx2(i) for i in bluex]
+
+    plt.plot(bluex,bluey)
+    plt.plot(bluex,firstDer)
+    plt.plot(bluex,secondDer)
+    plt.show()
+
+#main()

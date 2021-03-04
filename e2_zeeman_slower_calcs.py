@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.optimize import minimize
 from scipy.interpolate import UnivariateSpline
-from B_profile_generator import sample
+from B_profile_generator import profile_generator
 
 """
 Uses the data that Kayleigh took for the E2 Zeeman Slower to optimize the
@@ -90,23 +90,17 @@ yellow_B_prof = UnivariateSpline(yellow_calib_data[0]/100.0, yellow_calib_data[1
 green_B_prof = UnivariateSpline(green_calib_data[0]/100.0, green_calib_data[1])
 purple_B_prof = UnivariateSpline(purple_calib_data[0]/100.0, purple_calib_data[1])
 if FIXFLAG:
-    bluex,bluey = sample()
-    bluex = [x/100 for x in bluex]
-    blue_B_prof = UnivariateSpline(bluex, bluey)
+    blue_B_prof, blue_dBdz, blue_d2Bdz2 = profile_generator()
 
 red_dBdz = red_B_prof.derivative()
 yellow_dBdz = yellow_B_prof.derivative()
 green_dBdz = green_B_prof.derivative()
 purple_dBdz = purple_B_prof.derivative()
-if FIXFLAG:
-    blue_dBdz = blue_B_prof.derivative()
 
 red_d2Bdz2 = red_B_prof.derivative(2)
 yellow_d2Bdz2 = yellow_B_prof.derivative(2)
 green_d2Bdz2 = green_B_prof.derivative(2)
 purple_d2Bdz2 = purple_B_prof.derivative(2)
-if FIXFLAG:
-    blue_d2Bdz2 = blue_B_prof.derivative(2)
 
 #splines for the ZS B fields given an input current
 def exp_B_field(I, z):
@@ -231,6 +225,8 @@ def det_slower_type(z, detuning):
 
 # penalty function to minimize by least sq method
 def func_to_minimize(I, z, detuning):
+
+    print(z)
     
     #unpack I
     I = I.tolist()
