@@ -225,8 +225,6 @@ def det_slower_type(z, detuning):
 
 # penalty function to minimize by least sq method
 def func_to_minimize(I, z, detuning):
-
-    print(z)
     
     #unpack I
     I = I.tolist()

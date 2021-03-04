@@ -66,14 +66,21 @@ def profile_generator():
     #takes in m, output in gauss
     def B_prof(x):
         return 10000*B(x)
+    
+    def B_prof_out(xl):
+        return np.array([B_prof(x) for x in xl])
 
     def dBdx(x):
         return derivative(B_prof,x,0.001,n=1)
+    def dBdx_out(xl):
+        return np.array([dBdx(x) for x in xl])
     
     def d2Bdx2(x):
         return derivative(B_prof,x,0.001,n=2)
+    def d2Bdx2_out(xl):
+        return np.array([d2Bdx2(x) for x in xl])
     
-    return B_prof, dBdx, d2Bdx2
+    return B_prof_out, dBdx_out, d2Bdx2_out
     
 
 
@@ -109,13 +116,13 @@ def main():
     if test==1:
         bluex = np.linspace(-1,1,2000)
         B_profile, dBdx, d2Bdx2 = profile_generator()
-        bluey = [B_profile(i) for i in bluex]
-        firstDer = [dBdx(i) for i in bluex]
-        secondDer = [d2Bdx2(i) for i in bluex]
+        bluey = [B_profile([i]) for i in bluex]
+        firstDer = [dBdx([i]) for i in bluex]
+        secondDer = [d2Bdx2([i]) for i in bluex]
 
     plt.plot(bluex,bluey)
     plt.plot(bluex,firstDer)
     plt.plot(bluex,secondDer)
     plt.show()
 
-#main()
+# main()
