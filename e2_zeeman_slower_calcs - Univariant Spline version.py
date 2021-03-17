@@ -48,9 +48,12 @@ else:
 DETUNINGS = [0,-200,-400,-600,-800,-1000,-1200,-1400,-1600]
 
 # useful commands to run
-# B_field_dict = find_ZS_profiles([[0,0,0,0,0,35] for i in DETUNINGS], Z_AXIS, DETUNINGS)
+# B_field_dict = find_ZS_profiles([[0,0,0,0,0,0.35] for i in DETUNINGS], Z_AXIS, DETUNINGS)
 # (or) B_field_dict = find_ZS_profiles([[0,0,0,0,0] for i in DETUNINGS], Z_AXIS, DETUNINGS)
 # ZS_plot(Z_AXIS, B_field_dict)
+
+FITZ = True
+GIVENZ = 0.41
 
 # useful mappings for current list indicies -> color of ZS
 red_ind = 0
@@ -90,9 +93,9 @@ yellow_B_prof = UnivariateSpline(yellow_calib_data[0]/100.0, yellow_calib_data[1
 green_B_prof = UnivariateSpline(green_calib_data[0]/100.0, green_calib_data[1])
 purple_B_prof = UnivariateSpline(purple_calib_data[0]/100.0, purple_calib_data[1])
 if FIXFLAG:
-    bluex,bluey = sample()
+    bluex,bluey = sample(200,-100,100)
     bluex = [x/100 for x in bluex]
-    blue_B_prof = UnivariateSpline(bluex, bluey)
+    blue_B_prof = UnivariateSpline(bluex, bluey, s=0.1)
 
 red_dBdz = red_B_prof.derivative()
 yellow_dBdz = yellow_B_prof.derivative()
@@ -232,10 +235,12 @@ def det_slower_type(z, detuning):
 # penalty function to minimize by least sq method
 def func_to_minimize(I, z, detuning):
     
-    #unpack I
-    I = I.tolist()
-    coilPos = I.pop()
-    I = np.asarray(I)
+    if FITZ:
+        #unpack I
+        coilPos = I[-1]
+        I = I[:-1]
+    else:
+        coilPos = GIVENZ
     
     ideal_B = ideal_B_field(z, detuning)
     act_B = exp_B_field_fix(I, z, coilPos)
@@ -266,7 +271,7 @@ def func_to_minimize(I, z, detuning):
 
 # function to optimize the currents
 def find_opt_currents(I0, z, detuning):
-    bounds = [(-np.inf,np.inf),(-np.inf,np.inf),(-np.inf,np.inf),(-np.inf,np.inf),(-10,10),(20,60)]
+    bounds = [(-np.inf,np.inf),(-np.inf,np.inf),(-np.inf,np.inf),(-np.inf,np.inf),(-5,5),(0.2,0.5)]
     res = minimize(func_to_minimize, I0, args=(z, detuning),bounds=bounds)
     print('optimized detuning='+str(detuning)+'MHz, B-field profile')
     return res['x']
@@ -280,9 +285,15 @@ def find_ZS_profiles(I0_list, z, detuning_list):
     ideal_B_list = [ideal_B_field(z, detuning) for detuning in detuning_list]
     If_list = [find_opt_currents(I0_list[i], z, detuning_list[i]) for i in ind_list]
     print("test1")
-    exp_B_list = [exp_B_field_fix(If[:-1],z,If[-1]) for If in If_list]
+    if FITZ:
+        exp_B_list = [exp_B_field_fix(If[:-1],z,If[-1]) for If in If_list]
+    else:
+        exp_B_list = [exp_B_field_fix(If,z,GIVENZ) for If in If_list]
     print("test2")
-    adia_dev_list = [adia_dev_fix1(If_list[i],z,detuning_list[i],ZS_START_IND,ZS_END_IND) for i in ind_list]
+    if FITZ:
+        adia_dev_list = [adia_dev_fix1(If_list[i],z,detuning_list[i],ZS_START_IND,ZS_END_IND) for i in ind_list]
+    else:
+        adia_dev_list = [adia_dev_fix2(If_list[i],z,detuning_list[i],ZS_START_IND,ZS_END_IND, GIVENZ) for i in ind_list]
     print("test3")
     zs_profiles["ideal_B_list"] = ideal_B_list
     zs_profiles["If_list"] = If_list
@@ -298,7 +309,7 @@ def ZS_accel(z, v, I, detuning, eta):
     s0 = eta/(1-eta)
     B_curr = 0
     if (z <= Z_AXIS[-1] and z >= Z_AXIS[0]):
-        B_curr = exp_B_field(I, z)
+        B_curr = exp_B_field_fix(I[:-1], z, I[-1])
     delta = detuning + v/LAMBDA - B_curr/DETUNE_TO_B
     rv=(A_CONST/LAMBDA)*s0/(1+s0+(2.0*delta/10.5)**2)
     return rv

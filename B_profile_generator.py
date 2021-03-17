@@ -15,6 +15,7 @@ import math
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.misc import derivative
+from scipy.interpolate import UnivariateSpline
 
 # TODO: pack it all into a class
 
@@ -68,24 +69,26 @@ def profile_generator():
         return 10000*B(x)
     
     def B_prof_out(xl):
-        return np.array([B_prof(x) for x in xl])
+        return np.array([10000*B(x) for x in xl])
 
-    def dBdx(x):
-        return derivative(B_prof,x,0.001,n=1)
     def dBdx_out(xl):
-        return np.array([dBdx(x) for x in xl])
+        result = np.zeros(len(xl))
+        for i in range(len(xl)):
+            result[i] = derivative(B_prof,xl[i],0.001,n=1)
+        return result
     
-    def d2Bdx2(x):
-        return derivative(B_prof,x,0.001,n=2)
     def d2Bdx2_out(xl):
-        return np.array([d2Bdx2(x) for x in xl])
+        result = np.zeros(len(xl))
+        for i in range(len(xl)):
+            result[i] = derivative(B_prof,xl[i],0.001,n=2)
+        return result
     
     return B_prof_out, dBdx_out, d2Bdx2_out
     
 
 
 
-def sample():
+def sample(N,xmin,xmax):
     """
     Return a list of B_prof(x)  in cm and gauss
     """
@@ -103,7 +106,7 @@ def sample():
         x_in_m = x/100
         return 10000*B(x_in_m)
     
-    x = list(np.linspace(-100,100,2000))
+    x = list(np.linspace(xmin,xmax,N))
     y = [B_prof(i) for i in x]
     return x,y
     
@@ -124,5 +127,18 @@ def main():
     plt.plot(bluex,firstDer)
     plt.plot(bluex,secondDer)
     plt.show()
+
+def testUS():
+    N = 200
+    xmin = -100
+    xmax = 100
+    x,y = sample(N,xmin,xmax)
+    print(x)
+    profile = UnivariateSpline(x,y,s=0.1)
+    plt.plot(x,y)
+    plt.plot(np.linspace(min(x),max(x),N),profile(np.linspace(min(x),max(x),N)))
+    plt.show()
+
+# testUS()
 
 # main()
